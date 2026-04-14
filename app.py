@@ -76,7 +76,7 @@ st.markdown("""
 
 @st.cache_resource
 def conectar_spotify():
-    auth_manager = SpotifyClientCredentials(client_id=CLIENT_ID, client_secret=CLIENT_SECRET)
+    auth_manager = SpotifyClientCredentials(client_id=CLIENT_ID, client_secret=CLIENT_SECRET, cache_handler=spotipy.cache_handler.MemoryCacheHandler())
     return spotipy.Spotify(auth_manager=auth_manager)
 
 sp = conectar_spotify()
@@ -200,7 +200,7 @@ if artist_id:
             df_display = df[['Música', 'Duração', 'Feat']].copy()
             df_display.index = df_display.index + 1
         
-            st.dataframe(df_display, use_container_width=True)
+            st.dataframe(df_display, width='stretch')
             
             if colaboradores:
                 st.write("**Colaboradores neste álbum:** " + ", ".join(list(set(colaboradores))))
@@ -225,7 +225,7 @@ if artist_id:
             
             fig_line.update_layout(plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)")
             
-            st.plotly_chart(fig_line, use_container_width=True)
+            st.plotly_chart(fig_line, width='stretch')
 
         with c2:
             st.subheader("Proporção de Feats")
@@ -244,7 +244,7 @@ if artist_id:
             
             fig_bar.update_layout(plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)")
             
-            st.plotly_chart(fig_bar, use_container_width=True)
+            st.plotly_chart(fig_bar, width='stretch')
 
     except Exception as e:
         st.error(f"Erro na conexão: {e}")
