@@ -114,135 +114,142 @@ def buscar_faixas_album(id_album):
         offset += 10
     return faixas_brutas
 
-try:
- 
-    artista = buscar_dados_artista(artist_id)
-    albuns_unicos = buscar_albuns(artist_id)
+if artist_id:
+
+    try:
     
-    # --- HEADER ---
-    st.markdown(
-    f"""
-    <h1 style='display: flex; align-items: center;'>
-        <img src='https://storage.googleapis.com/pr-newsroom-wp/1/2023/05/Spotify_Primary_Logo_RGB_Green.png' 
-             style='width:60px; margin-right:5px;'>
-        {artista['name']}
-    </h1>
-    """, 
-    unsafe_allow_html=True
-)
-    st.write("Exploração completa de catálogo e colaborações.")
-
-    # --- SIDEBAR E SELEÇÃO ---
-    st.sidebar.image(artista['images'][0]['url'], width=200)
-    album_nome = st.sidebar.selectbox("Selecione o Álbum:", list(albuns_unicos.keys()))
-    album_info = albuns_unicos[album_nome]
-
-    # --- PROCESSAMENTO DAS MÚSICAS DO ÁLBUM ---
-    faixas_brutas = buscar_faixas_album(album_info['id'])
-
-    dados_lista = []
-    colaboradores = []
-
-    for f in faixas_brutas:
-        duracao_ms = f['duration_ms']
+        artista = buscar_dados_artista(artist_id)
+        albuns_unicos = buscar_albuns(artist_id)
         
-        # Converte milissegundos para minutos e segundos 
-        minutos = duracao_ms // 60000
-        segundos = (duracao_ms % 60000) // 1000
-        
-        # Cria a string formatada "M:SS"
-        tempo_formatado = f"{minutos}:{segundos:02d}"
-        
-        # Para o gráfico, ainda precisamos do valor numérico (em minutos decimais)
-        duracao_decimal = round(duracao_ms / 60000, 2)
-        
-        artistas_na_pista = [a['name'] for a in f['artists']]
-        tem_feat = "Sim" if len(artistas_na_pista) > 1 else "Não"
-        
-        if len(artistas_na_pista) > 1:
-            convidados = [a for a in artistas_na_pista if artista['name'].upper() not in a.upper()]
-            colaboradores.extend(convidados)
+        # --- HEADER ---
+        st.markdown(
+        f"""
+        <h1 style='display: flex; align-items: center;'>
+            <img src='https://storage.googleapis.com/pr-newsroom-wp/1/2023/05/Spotify_Primary_Logo_RGB_Green.png' 
+                style='width:60px; margin-right:5px;'>
+            {artista['name']}
+        </h1>
+        """, 
+        unsafe_allow_html=True
+    )
+        st.write("Exploração completa de catálogo e colaborações.")
 
-        dados_lista.append({
-            "Música": f['name'],
-            "Duração": tempo_formatado,       # O que vai aparecer na tabela
-            "Duração (min)": duracao_decimal, # O que vai para o gráfico
-            "Feat": tem_feat,
-            "Convidados": ", ".join([a for a in artistas_na_pista if artista['name'].upper() not in a.upper()])
-        })
+        # --- SIDEBAR E SELEÇÃO ---
+        st.sidebar.image(artista['images'][0]['url'], width=200)
+        album_nome = st.sidebar.selectbox("Selecione o Álbum:", list(albuns_unicos.keys()))
+        album_info = albuns_unicos[album_nome]
 
-    df = pd.DataFrame(dados_lista)
+        # --- PROCESSAMENTO DAS MÚSICAS DO ÁLBUM ---
+        faixas_brutas = buscar_faixas_album(album_info['id'])
 
-    # --- MÉTRICAS DE RESUMO (KPIs) ---
-    m1, m2, m3 = st.columns(3)
-    total_ms = sum([f['duration_ms'] for f in faixas_brutas])
-    min_totais = int(total_ms // 60000)
-    
-    m1.metric("Duração Total do Álbum", f"{min_totais} min")
-    m2.metric("Média por Faixa", f"{round(df['Duração (min)'].mean(), 2)} min")
-    m3.metric("Músicas com Feat", len(df[df['Feat'] == "Sim"]))
+        dados_lista = []
+        colaboradores = []
 
-    st.divider()
+        for f in faixas_brutas:
+            duracao_ms = f['duration_ms']
+            
+            # Converte milissegundos para minutos e segundos 
+            minutos = duracao_ms // 60000
+            segundos = (duracao_ms % 60000) // 1000
+            
+            # Cria a string formatada "M:SS"
+            tempo_formatado = f"{minutos}:{segundos:02d}"
+            
+            # Para o gráfico, ainda precisamos do valor numérico (em minutos decimais)
+            duracao_decimal = round(duracao_ms / 60000, 2)
+            
+            artistas_na_pista = [a['name'] for a in f['artists']]
+            tem_feat = "Sim" if len(artistas_na_pista) > 1 else "Não"
+            
+            if len(artistas_na_pista) > 1:
+                convidados = [a for a in artistas_na_pista if artista['name'].upper() not in a.upper()]
+                colaboradores.extend(convidados)
 
-    # --- COLUNAS PRINCIPAIS ---
-    col1, col2 = st.columns([1, 1])
+            dados_lista.append({
+                "Música": f['name'],
+                "Duração": tempo_formatado,       # O que vai aparecer na tabela
+                "Duração (min)": duracao_decimal, # O que vai para o gráfico
+                "Feat": tem_feat,
+                "Convidados": ", ".join([a for a in artistas_na_pista if artista['name'].upper() not in a.upper()])
+            })
 
-    with col1:
-        st.subheader("Player & Capa")
-        st.image(album_info['images'][0]['url'], width=350)
-        album_id = album_info['id']
-        st.markdown(f'<iframe src="https://open.spotify.com/embed/album/{album_id}" style="border-radius:12px" width="100%" height="152" frameborder="0" allowtransparency="true" allow="encrypted-media"></iframe>', unsafe_allow_html=True)
+        df = pd.DataFrame(dados_lista)
 
-    with col2:
-        st.subheader("Análise de Faixas")
-        df_display = df[['Música', 'Duração', 'Feat']].copy()
-        df_display.index = df_display.index + 1
-    
-        st.dataframe(df_display, use_container_width=True)
+        # --- MÉTRICAS DE RESUMO (KPIs) ---
+        m1, m2, m3 = st.columns(3)
+        total_ms = sum([f['duration_ms'] for f in faixas_brutas])
+        min_totais = int(total_ms // 60000)
         
-        if colaboradores:
-            st.write("**Colaboradores neste álbum:** " + ", ".join(list(set(colaboradores))))
-        else:
-            st.write("*Este é um álbum totalmente solo.*")
+        m1.metric("Duração Total do Álbum", f"{min_totais} min")
+        m2.metric("Média por Faixa", f"{round(df['Duração (min)'].mean(), 2)} min")
+        m3.metric("Músicas com Feat", len(df[df['Feat'] == "Sim"]))
 
-    # --- GRÁFICOS INFERIORES ---
-    st.divider()
-    c1, c2 = st.columns(2)
+        st.divider()
 
-    with c1:
-        st.subheader("Variabilidade de Tempo")
-        # Criamos o gráfico usando Plotly Express
-        fig_line = px.line(
-            df, 
-            x="Música", 
-            y="Duração (min)",
-            color_discrete_sequence=["#1ED760"] 
-        )
-        
-        fig_line.update_xaxes(tickangle=45)
-        
-        fig_line.update_layout(plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)")
-        
-        st.plotly_chart(fig_line, use_container_width=True)
+        # --- COLUNAS PRINCIPAIS ---
+        col1, col2 = st.columns([1, 1])
 
-    with c2:
-        st.subheader("Proporção de Feats")
-        # Criamos os dados para o gráfico de barras
-        feat_counts = df['Feat'].value_counts().reset_index()
-        feat_counts.columns = ['Feat', 'Quantidade']
-        
-        fig_bar = px.bar(
-            feat_counts, 
-            x="Feat", 
-            y="Quantidade",
-            color_discrete_sequence=["#1ED760"]
-        )
-        
-        fig_bar.update_xaxes(tickangle=0)
-        
-        fig_bar.update_layout(plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)")
-        
-        st.plotly_chart(fig_bar, use_container_width=True)
+        with col1:
+            st.subheader("Player & Capa")
+            st.image(album_info['images'][0]['url'], width=350)
+            album_id = album_info['id']
+            st.markdown(f'<iframe src="https://open.spotify.com/embed/album/{album_id}" style="border-radius:12px" width="100%" height="152" frameborder="0" allowtransparency="true" allow="encrypted-media"></iframe>', unsafe_allow_html=True)
 
-except Exception as e:
-    st.error(f"Erro na conexão: {e}")
+        with col2:
+            st.subheader("Análise de Faixas")
+            df_display = df[['Música', 'Duração', 'Feat']].copy()
+            df_display.index = df_display.index + 1
+        
+            st.dataframe(df_display, use_container_width=True)
+            
+            if colaboradores:
+                st.write("**Colaboradores neste álbum:** " + ", ".join(list(set(colaboradores))))
+            else:
+                st.write("*Este é um álbum totalmente solo.*")
+
+        # --- GRÁFICOS INFERIORES ---
+        st.divider()
+        c1, c2 = st.columns(2)
+
+        with c1:
+            st.subheader("Variabilidade de Tempo")
+            # Criamos o gráfico usando Plotly Express
+            fig_line = px.line(
+                df, 
+                x="Música", 
+                y="Duração (min)",
+                color_discrete_sequence=["#1ED760"] 
+            )
+            
+            fig_line.update_xaxes(tickangle=45)
+            
+            fig_line.update_layout(plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)")
+            
+            st.plotly_chart(fig_line, use_container_width=True)
+
+        with c2:
+            st.subheader("Proporção de Feats")
+            # Criamos os dados para o gráfico de barras
+            feat_counts = df['Feat'].value_counts().reset_index()
+            feat_counts.columns = ['Feat', 'Quantidade']
+            
+            fig_bar = px.bar(
+                feat_counts, 
+                x="Feat", 
+                y="Quantidade",
+                color_discrete_sequence=["#1ED760"]
+            )
+            
+            fig_bar.update_xaxes(tickangle=0)
+            
+            fig_bar.update_layout(plot_bgcolor="rgba(0,0,0,0)", paper_bgcolor="rgba(0,0,0,0)")
+            
+            st.plotly_chart(fig_bar, use_container_width=True)
+
+    except Exception as e:
+        st.error(f"Erro na conexão: {e}")
+
+else:
+    # Mensagem amigável caso o campo esteja vazio
+    st.warning("Por favor, insira um ID de artista válido na barra lateral para começar.")
+    st.info("Dica: Você pode encontrar o ID no link do artista no Spotify (ex: spotify:artist:ID_AQUI)")
